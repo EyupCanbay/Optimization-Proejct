@@ -195,6 +195,11 @@ func (s *Simulation) Tick() {
 					canEnterRoad = false
 					break
 				}
+				// VEYA yolda araç var mı? (ilk 50m içinde)
+				if other.Status == models.StatusMoving && other.Direction == models.DirRight && other.Position < 50 {
+					canEnterRoad = false
+					break
+				}
 			}
 			
 			if canEnterRoad {
@@ -380,12 +385,43 @@ func (s *Simulation) Tick() {
 			
 			// Karşı yönden gelen araçları kontrol et
 			if s.wouldCollide(v, dt) {
-				// Cep veya depo bul
-				spot := s.findNearestWaitingSpot(v)
-				if spot >= 0 {
+				// Bu araç için en yakın cep/depo mesafesini bul
+				mySpot := s.findNearestWaitingSpot(v)
+				myDist := math.MaxFloat64
+				if mySpot >= 0 {
+					myDist = math.Abs(v.Position - float64(mySpot))
+				}
+				
+				// Karşı yöndeki araç için de kontrol et
+				shouldRetreat := true
+				for _, other := range s.state.Vehicles {
+					if other.ID == v.ID || other.Status == models.StatusDone {
+						continue
+					}
+					// Karşı yönde mi?
+					if other.Direction != v.Direction && other.Status == models.StatusMoving {
+						dist := math.Abs(v.Position - other.Position)
+						if dist < 50 { // Yakında
+							// Diğer araç için en yakın cep/depo mesafesi
+							otherSpot := s.findNearestWaitingSpot(&other)
+							otherDist := math.MaxFloat64
+							if otherSpot >= 0 {
+								otherDist = math.Abs(other.Position - float64(otherSpot))
+							}
+							
+							// Diğer araç daha yakınsa, o geri çekilsin, ben devam edeyim
+							if otherDist < myDist {
+								shouldRetreat = false
+								break
+							}
+						}
+					}
+				}
+				
+				if shouldRetreat && mySpot >= 0 {
 					v.Status = models.StatusRetreating
-					v.WaitingAt = spot
-					events = append(events, fmt.Sprintf("Araç #%d karşıdan araç geliyor! %dm'ye geri çekiliyor", v.ID, spot))
+					v.WaitingAt = mySpot
+					events = append(events, fmt.Sprintf("Araç #%d karşıdan araç geliyor! %dm'ye geri çekiliyor (daha yakın)", v.ID, mySpot))
 				}
 				continue
 			}
