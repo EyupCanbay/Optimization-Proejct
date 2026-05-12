@@ -1,0 +1,23 @@
+# Go build çıktıları
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/otonom-arac-sim/backend/otonom-arac-sim
+
+# Frontend bağımlılıkları (npm install ile yeniden kurulur)
+otonom-arac-sim/frontend/node_modules/
+
+# Frontend build çıktısı
+otonom-arac-sim/frontend/dist/
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
